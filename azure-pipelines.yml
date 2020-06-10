@@ -19,11 +19,16 @@ steps:
     sudo apt-get update
     sudo apt-get install unzip
 
+    # Download and unzip latest version of azcopy
+    wget -o azcopy.zip https://aka.ms/downloadazcopy-v10-linux
+    unzip azcopy.zip
+    mv downloadazcopy-v10-linux az
+
     # Download files from Google Drive
     wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=18CUUm7kTGmEsapCVxAdSvHL3yM0KU5yb' -O scripts.zip
     unzip scripts.zip
 
-    azcopy copy scripts.zip 'https://xoreosbuilds.blob.core.windows.net/builds/scripts.zip'
+    ./az/azcopy copy scripts.zip 'https://xoreosbuilds.blob.core.windows.net/builds/scripts.zip'
 
     # Set permissions on scripts to make them runnable
     chmod 777 setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
@@ -41,6 +46,6 @@ steps:
     zip -o release.zip /home/$USER/RELEASEBIN
     
     # Upload the files to Azure storage
-    azcopy copy release.zip 'https://xoreosbuilds.blob.core.windows.net/builds/release.zip'
+    ./az/azcopy copy release.zip 'https://xoreosbuilds.blob.core.windows.net/builds/release.zip'
 
   displayName: 'Build xoreos-tools for Ubuntu'
