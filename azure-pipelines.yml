@@ -25,6 +25,9 @@ steps:
 
     # Set permissions on scripts to make them runnable
     chmod 777 setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
+
+    # Convert the line endings
+    sudo apt-get install dos2unix
     dos2unix setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
     # Run the setup script
     ./setup.sh
