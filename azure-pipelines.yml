@@ -40,8 +40,8 @@ steps:
     dos2unix setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
     
     # TODO: Use actual library files instead of making a fake one lol
-    mkdir /home/$USER/LIBSDIR
-    tar -cJf /home/$USER/LIBSDIR/xoreos-tools-win64.tar.xz -T /dev/null
+    mkdir /home/vsts/LIBSDIR
+    tar -cJf /home/vsts/LIBSDIR/xoreos-tools-win64.tar.xz -T /dev/null
     
     # Run the setup script
     ./setup.sh
