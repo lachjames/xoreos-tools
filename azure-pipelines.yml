@@ -13,10 +13,9 @@ steps:
 - script: |
     #!/bin/bash
 
-    # Move items into xoreos-tools folder
-    mkdir xoreos-tools
-    mv * xoreos-tools
-    
+    # Download xoreos-tools
+    git clone git://github.com/xoreos/xoreos-tools
+
     sudo apt-get update
     sudo apt-get install unzip
 
