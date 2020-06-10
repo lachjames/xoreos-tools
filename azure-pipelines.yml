@@ -12,8 +12,13 @@ pool:
 
 steps:
 - bash: echo "Hello world!" > test.txt
-- bash: az storage blob upload --container-name builds --file test.txt --name test.txt
-
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'Free Trial(9c59814a-0836-4ff3-8de7-5f7a3b31959e)'
+    scriptType: 'batch'
+    scriptLocation: 'inlineScript'
+    inlineScript: 'az storage blob upload --container-name builds --file test.txt --name test.txt'
+    
 # - script: |
 #     #!/bin/bash
 
