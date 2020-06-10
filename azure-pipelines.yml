@@ -29,8 +29,8 @@ steps:
     pip3 install gdown
     sudo apt-get install unzip
     
-    /home/${USER}/.local/bin/gdown 'https://docs.google.com/uc?id=18CUUm7kTGmEsapCVxAdSvHL3yM0KU5yb'
-    unzip xoreostools.zip
+    /home/${USER}/.local/bin/gdown -O scripts.zip 'https://docs.google.com/uc?id=18CUUm7kTGmEsapCVxAdSvHL3yM0KU5yb'
+    unzip scripts.zip
 
     # Set permissions on scripts to make them runnable
     chmod 777 setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
