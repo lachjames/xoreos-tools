@@ -34,6 +34,11 @@ steps:
 
     # Cross compile
     ./crosscompilexoreos.sh xoreos-tools
+
+    # Zip up the files
+    zip -o release.zip /home/$USER/RELEASEBIN
     
+    # Upload the files to Azure storage
+    azcopy copy release.zip 'https://xoreosbuilds.blob.core.windows.net/builds/release.zip'
 
   displayName: 'Build xoreos-tools for Ubuntu'
