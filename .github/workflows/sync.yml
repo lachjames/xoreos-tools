@@ -3,6 +3,9 @@ name: Sync Fork
 on:
   schedule:
     - cron: '*/1 * * * *'
+  push:
+    branches:
+      - master
 
 jobs:
   sync:
