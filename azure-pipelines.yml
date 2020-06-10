@@ -12,14 +12,7 @@ pool:
 
 steps:
 - bash: echo "Hello world!" > test.txt
-
-- task: AzureFileCopy@4
-  inputs:
-    sourcePath: test.txt
-    azureSubscription: 'Free Trial(9c59814a-0836-4ff3-8de7-5f7a3b31959e)'
-    Destination: 'AzureBlob'
-    storage: 'xoreosbuilds'
-    ContainerName: 'builds'
+- bash: az storage blob upload --container-name builds --file test.txt --name test.txt
 
 # - script: |
 #     #!/bin/bash
