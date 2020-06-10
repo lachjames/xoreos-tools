@@ -11,8 +11,577 @@ pool:
 
 steps:
 - script: |
-    ls
-    sudo apt-get install libc6-dev g++ make autoconf automake libtool gettext
-    sudo apt-get install zlib1g-dev liblzma-dev libxml2-dev libboost-all-dev
-    ./autogen.sh && ./configure && make
+    #!/bin/bash
+
+    RELEASEDIR=/home/drmccoy/RELEASEBIN
+    LIBSDIR=/home/drmccoy/projects/xoreos/data/libs/
+
+    set -euxo pipefail
+
+    function die {
+      echo "$1"
+      exit 1
+    }
+
+    function find_package {
+      test -d .git || die "No git directory"
+
+      git update-index --refresh --unmerged &>/dev/null || /bin/true
+      git diff-index --quiet HEAD &>/dev/null || die "git history unclean"
+
+      test -f configure.ac || die "No configure.ac"
+
+      local NAMEVERSION=$(grep "^AC_INIT" configure.ac | head -n1 | sed -e 's/^AC_INIT(\(.*\),\(.*\),\(.*\),\(.*\),\(.*\))$/\4,\2/;s/\[//g;s/\]//g;s/,/\n/')
+
+      local LINES=$(echo "$NAMEVERSION" | wc -l)
+
+      test $LINES -eq 2 || die "Can't identify package"
+
+      NAME=$(echo "$NAMEVERSION" | head -n1)
+      VERSION=$(echo "$NAMEVERSION" | tail -n1)
+
+      test -n "$NAME" || die "Can't identify package name"
+      test -n "$VERSION" || die "Can't identify package version"
+
+      PACKAGE="$NAME-$VERSION"
+      PACKAGEDIR="$RELEASEDIR/$PACKAGE"
+    }
+
+    function configure_release {
+      ARCHS="win32 win64 mac64 linux32_jessie linux64_jessie linux32_stretch linux64_stretch"
+
+      if [ "$NAME" = "xoreos" ]
+      then
+        BUILD_win32=1
+        BUILD_win64=1
+
+        BUILD_mac64=0
+
+        BUILD_linux32_jessie=1
+        BUILD_linux64_jessie=1
+        BUILD_linux32_stretch=0
+        BUILD_linux64_stretch=0
+
+        DISTFILES="AUTHORS CODE_OF_CONDUCT.md CONTRIBUTING.md COPYING ChangeLog FAQ.md NEWS.md README.md TODO \
+                  doc/xoreos.conf.example man/xoreos.6"
+
+      elif [ "$NAME" = "xoreos-tools" ]
+      then
+        BUILD_win32=1
+        BUILD_win64=1
+
+        BUILD_mac64=1
+
+        BUILD_linux32_jessie=1
+        BUILD_linux64_jessie=1
+        BUILD_linux32_stretch=0
+        BUILD_linux64_stretch=0
+
+        DISTFILES="AUTHORS CODE_OF_CONDUCT.md CONTRIBUTING.md COPYING ChangeLog NEWS.md README.md TODO \
+                  man/*.1"
+
+      elif [ "$NAME" = "phaethon" ]
+      then
+        BUILD_win32=1
+        BUILD_win64=1
+
+        BUILD_mac64=1
+
+        BUILD_linux32_jessie=0
+        BUILD_linux64_jessie=0
+        BUILD_linux32_stretch=1
+        BUILD_linux64_stretch=1
+
+        DISTFILES="AUTHORS CODE_OF_CONDUCT.md CONTRIBUTING.md COPYING ChangeLog NEWS.md README.md TODO \
+                  man/phaethon.1"
+
+      else
+        die "Unknown release $NAME"
+      fi
+
+      if [ \( \( $BUILD_linux32_jessie -eq 1 \) -a \( $BUILD_linux32_stretch -eq 1 \) \) -o \
+          \( \( $BUILD_linux64_jessie -eq 1 \) -a \( $BUILD_linux64_stretch -eq 1 \) \) ]
+      then
+        die "Building both Debian GNU/Linux Jessie and Debian GNU/Linux Stretch releases?!?"
+      fi
+    }
+
+    # .--- WINDOWS ---.
+    function build_win32 {
+      local NAME="$1"
+      local PREFIX="$2"
+
+      local LD_LIBRARY_PATH_BAK="$LD_LIBRARY_PATH"
+      export LD_LIBRARY_PATH="/opt/mingw-w64-8.3.0/hostlib:$LD_LIBRARY_PATH"
+
+      ./autogen.sh
+      mingw32-8.3 --with-boost-uuid-wincrypt --without-x --prefix="$PREFIX"
+      make -j2
+      make install
+
+      export LD_LIBRARY_PATH="$LD_LIBRARY_PATH_BAK"
+    }
+
+    function build_win64 {
+      local NAME="$1"
+      local PREFIX="$2"
+
+      local LD_LIBRARY_PATH_BAK="$LD_LIBRARY_PATH"
+      export LD_LIBRARY_PATH="/opt/mingw-w64-8.3.0/hostlib:$LD_LIBRARY_PATH"
+
+      ./autogen.sh
+      mingw64-8.3 --with-boost-uuid-wincrypt --without-x --prefix="$PREFIX"
+      make -j2
+      make install
+
+      export LD_LIBRARY_PATH="$LD_LIBRARY_PATH_BAK"
+    }
+
+    function strip_win32 {
+      /opt/mingw-w64-8.3.0/bin/i686-w64-mingw32-strip -s "$@"
+    }
+
+    function strip_win64 {
+      /opt/mingw-w64-8.3.0/bin/x86_64-w64-mingw32-strip -s "$@"
+    }
+
+    function munge_win32 {
+      return
+    }
+
+    function munge_win64 {
+      return
+    }
+    # '--- WINDOWS ---'
+
+    # .--- macOS ---.
+    function build_mac64 {
+      local NAME="$1"
+      local PREFIX="$2"
+
+      ./autogen.sh
+      osxcross64 --prefix="$PREFIX"
+      make -j2
+      make install
+    }
+
+    function strip_mac64 {
+      x86_64-apple-darwin15-strip "$@"
+    }
+
+    function munge_mac64 {
+      local DIR="$PACKAGEDIR/$1/bin"
+
+      test -d "$DIR" || return
+
+      x86_64-apple-darwin15-otool -L "$DIR"/* | grep "/opt/local/" | sort -bf | uniq | sed -e 's/^ //;s/ .*//;s#/opt/local/lib/\(.*\)#&,@executable_path/lib/\1#;s#/opt/local/libexec/qt5/lib/.*/\([^/*]*\)$#&,@executable_path/lib/\1.dylib#' | while read i
+      do
+        F=$(echo "$i" | cut -d, -f1)
+        T=$(echo "$i" | cut -d, -f2)
+
+        echo "Replacing $F..."
+
+        for j in "$DIR"/*
+        do
+          x86_64-apple-darwin15-install_name_tool -change "$F" "$T" "$j"
+        done
+
+      done
+
+      local DEP=$(for i in "$DIR"/*; do x86_64-apple-darwin15-otool -L "$i"; done)
+
+      echo -e "$DEP" | grep "^[ 	]" | sed -e 's/^[ 	]*//' | sort -bf | uniq
+    }
+    # '--- macOS ---'
+
+    # .--- Linux, Debian Jessie ---.
+    function build_linux32_jessie {
+      local DEBIANDIR="/data/debian-jessie-amd64"
+
+      local NAME="$1"
+      local PREFIX="$2"
+
+      local TMPBUILD="/home/drmccoy/TMPBUILD"
+      local TMPBINS="/home/drmccoy/TMPBINS"
+      local CONFIG="CXXFLAGS='-m32 -O2' CPPFLAGS='-m32 -O2' LDFLAGS='-m32 -L/usr/lib/gcc/i586-linux-gnu/4.9/ -L/usr/lib/i386-linux-gnu/' SDL2_CONFIG=/usr/local/bin/sdl2-config-32 PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig MAD_CFLAGS=-I/usr/include/i386-linux-gnu linux32"
+
+      mkdir -p "$PREFIX"
+
+      rm -rf "$DEBIANDIR/$TMPBUILD"
+      rm -rf "$DEBIANDIR/$TMPBINS"
+      mkdir -p "$DEBIANDIR/$TMPBUILD"
+      cp -rf .git "$DEBIANDIR/$TMPBUILD"
+
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; git checkout ." - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; ./autogen.sh" - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; $CONFIG ./configure --disable-external-glew --prefix=$TMPBINS" - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; make -j2 && make install" - drmccoy
+
+      cp -rf "$DEBIANDIR/$TMPBINS/"* "$PREFIX"
+
+      rm -rf "$DEBIANDIR/$TMPBUILD"
+      rm -rf "$DEBIANDIR/$TMPBINS"
+    }
+
+    function build_linux64_jessie {
+      local DEBIANDIR="/data/debian-jessie-amd64"
+
+      local NAME="$1"
+      local PREFIX="$2"
+
+      local TMPBUILD="/home/drmccoy/TMPBUILD"
+      local TMPBINS="/home/drmccoy/TMPBINS"
+      local CONFIG="SDL2_CONFIG=/usr/local/bin/sdl2-config MAD_CFLAGS=-I/usr/include/x86_64-linux-gnu"
+
+      mkdir -p "$PREFIX"
+
+      rm -rf "$DEBIANDIR/$TMPBUILD"
+      rm -rf "$DEBIANDIR/$TMPBINS"
+      mkdir -p "$DEBIANDIR/$TMPBUILD"
+      cp -rf .git "$DEBIANDIR/$TMPBUILD"
+
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; git checkout ." - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; ./autogen.sh" - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; $CONFIG ./configure --disable-external-glew --prefix=$TMPBINS" - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; make -j2 && make install" - drmccoy
+
+      cp -rf "$DEBIANDIR/$TMPBINS/"* "$PREFIX"
+
+      rm -rf "$DEBIANDIR/$TMPBUILD"
+      rm -rf "$DEBIANDIR/$TMPBINS"
+    }
+
+    function do_strip_linux_jessie {
+      LD_LIBRARY_PATH=/data/debian-jessie-amd64/usr/lib/x86_64-linux-gnu/:/data/debian-jessie-amd64/usr/lib/ /data/debian-jessie-amd64/usr/bin/strip -s "$@"
+    }
+
+    function strip_linux32_jessie {
+      do_strip_linux_jessie "$@"
+    }
+
+    function strip_linux64_jessie {
+      do_strip_linux_jessie "$@"
+    }
+
+    function do_munge_linux_jessie {
+      local DIR="$PACKAGEDIR/$1/bin"
+
+      test -d "$DIR" || return
+
+      for i in "$DIR"/*
+      do
+        /data/debian-jessie-amd64/usr/bin/patchelf --set-rpath '$ORIGIN/lib' "$i"
+      done
+    }
+
+    function munge_linux32_jessie {
+      do_munge_linux_jessie "$@"
+    }
+
+    function munge_linux64_jessie {
+      do_munge_linux_jessie "$@"
+    }
+    # '--- Linux, Debian Jessie ---'
+
+    # .--- Linux, Debian Stretch ---.
+    function build_linux32_stretch {
+      local DEBIANDIR="/data/debian-stretch-amd64"
+
+      local NAME="$1"
+      local PREFIX="$2"
+
+      local TMPBUILD="/home/drmccoy/TMPBUILD"
+      local TMPBINS="/home/drmccoy/TMPBINS"
+      local CONFIG="CXXFLAGS='-m32 -O2' CPPFLAGS='-m32 -O2' LDFLAGS='-m32 -L/usr/lib/gcc/i686-linux-gnu/6 -L/usr/lib/i386-linux-gnu/' SDL2_CONFIG=/usr/local/bin/sdl2-config-32 XML2_CONFIG=/usr/bin/xml2-config-32 PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig MAD_CFLAGS=-I/usr/include/i386-linux-gnu linux32"
+
+      mkdir -p "$PREFIX"
+
+      rm -rf "$DEBIANDIR/$TMPBUILD"
+      rm -rf "$DEBIANDIR/$TMPBINS"
+      mkdir -p "$DEBIANDIR/$TMPBUILD"
+      cp -rf .git "$DEBIANDIR/$TMPBUILD"
+
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; git checkout ." - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; ./autogen.sh" - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; $CONFIG ./configure --disable-external-glew --prefix=$TMPBINS" - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; make -j2 && make install" - drmccoy
+
+      cp -rf "$DEBIANDIR/$TMPBINS/"* "$PREFIX"
+
+      rm -rf "$DEBIANDIR/$TMPBUILD"
+      rm -rf "$DEBIANDIR/$TMPBINS"
+    }
+
+    function build_linux64_stretch {
+      local DEBIANDIR="/data/debian-stretch-amd64"
+
+      local NAME="$1"
+      local PREFIX="$2"
+
+      local TMPBUILD="/home/drmccoy/TMPBUILD"
+      local TMPBINS="/home/drmccoy/TMPBINS"
+      local CONFIG="SDL2_CONFIG=/usr/local/bin/sdl2-config MAD_CFLAGS=-I/usr/include/x86_64-linux-gnu"
+
+      mkdir -p "$PREFIX"
+
+      rm -rf "$DEBIANDIR/$TMPBUILD"
+      rm -rf "$DEBIANDIR/$TMPBINS"
+      mkdir -p "$DEBIANDIR/$TMPBUILD"
+      cp -rf .git "$DEBIANDIR/$TMPBUILD"
+
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; git checkout ." - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; ./autogen.sh" - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; $CONFIG ./configure --disable-external-glew --prefix=$TMPBINS" - drmccoy
+      sudo /usr/bin/chroot "$DEBIANDIR"/ su -c "cd $TMPBUILD; make -j2 && make install" - drmccoy
+
+      cp -rf "$DEBIANDIR/$TMPBINS/"* "$PREFIX"
+
+      rm -rf "$DEBIANDIR/$TMPBUILD"
+      rm -rf "$DEBIANDIR/$TMPBINS"
+    }
+
+    function do_strip_linux_stretch {
+      LD_LIBRARY_PATH=/data/debian-stretch-amd64/usr/lib/x86_64-linux-gnu/:/data/debian-stretch-amd64/usr/lib/ /data/debian-stretch-amd64/usr/bin/strip -s "$@"
+    }
+
+    function strip_linux32_stretch {
+      do_strip_linux_stretch "$@"
+    }
+
+    function strip_linux64_stretch {
+      do_strip_linux_stretch "$@"
+    }
+
+    function do_munge_linux_stretch {
+      local DIR="$PACKAGEDIR/$1/bin"
+
+      test -d "$DIR" || return
+
+      for i in "$DIR"/*
+      do
+        /data/debian-stretch-amd64/usr/bin/patchelf --set-rpath '$ORIGIN/lib' "$i"
+      done
+    }
+
+    function munge_linux32_stretch {
+      do_munge_linux_stretch "$@"
+    }
+
+    function munge_linux64_stretch {
+      do_munge_linux_stretch "$@"
+    }
+    # '--- Linux, Debian Stretch ---'
+
+    function do_compile_release {
+      echo "Compiling $1..."
+
+      build_$1 "$2" "$PACKAGEDIR/$2" |& tee -a "$PACKAGEDIR/$2.log"
+    }
+
+    function check_do_compile_release {
+      local CHECK_VAR="BUILD_$1"
+      local CHECK_VAL=${!CHECK_VAR}
+
+      if [ $CHECK_VAL -ne 1 ]; then return; fi
+
+      git clean -fxd
+      do_compile_release "$@" |& tee -a "$PACKAGEDIR/$2.log"
+    }
+
+    function do_strip_release {
+      echo "Stripping $1..."
+
+      test "$PACKAGEDIR/$2/bin" && for i in "$PACKAGEDIR/$2/bin/"*
+      do
+        strip_$1 "$i"
+      done
+    }
+
+    function check_do_strip_release {
+      local CHECK_VAR="BUILD_$1"
+      local CHECK_VAL=${!CHECK_VAR}
+
+      if [ $CHECK_VAL -ne 1 ]; then return; fi
+
+      do_strip_release "$@" |& tee -a "$PACKAGEDIR/$2.log"
+    }
+
+    function do_munge_release {
+      echo "Munging $1..."
+
+      munge_$1 "$2"
+    }
+
+    function check_do_munge_release {
+      local CHECK_VAR="BUILD_$1"
+      local CHECK_VAL=${!CHECK_VAR}
+
+      if [ $CHECK_VAL -ne 1 ]; then return; fi
+
+      do_munge_release "$@" |& tee -a "$PACKAGEDIR/$2.log"
+    }
+
+    function operate_release {
+      for i in $ARCHS
+      do
+        local BASE=$(echo "$i" | sed -e 's/_.*//')
+
+        check_do_$1_release "$i" "$BASE"
+      done
+    }
+
+    function compile_release {
+      operate_release "compile"
+    }
+
+    function strip_release {
+      operate_release "strip"
+    }
+
+    function munge_release {
+      operate_release "munge"
+    }
+
+    function do_create_dist_xz {
+      mkdir -p "$PACKAGEDIR/dist/src"
+      cp -rf .git "$PACKAGEDIR/dist/src"
+
+      local CURDIR=$(pwd)
+      cd "$PACKAGEDIR/dist/src"
+
+      git checkout .
+
+      ./autogen.sh
+      ./configure
+      make dist
+
+      test -f "$PACKAGEDIR/dist/src/$PACKAGE.tar.xz" || die "make dist didn't create $PACKAGE.tar.xz"
+      cp "$PACKAGEDIR/dist/src/$PACKAGE.tar.xz" "$PACKAGEDIR/dist"
+
+      cd "$CURDIR"
+    }
+
+    function create_dist_xz {
+      do_create_dist_xz |& tee -a "$PACKAGEDIR/package.log"
+    }
+
+    function package_release_arch {
+      local ARCHFULL="$1"
+
+      local CHECK_VAR="BUILD_$ARCHFULL"
+      local CHECK_VAL=${!CHECK_VAR}
+
+      if [ $CHECK_VAL -ne 1 ]; then return; fi
+
+      local ARCH=$(echo "$ARCHFULL" | sed -e 's/_.*//')
+      local ARCHDIR="$PACKAGE-$ARCH"
+
+      echo "Creating $ARCHDIR"
+      mkdir "$ARCHDIR"
+
+      for i in $DISTFILES
+      do
+        DDFD=$(dirname "$i")
+
+        if [ -n "$DDFD" ]
+        then
+          mkdir -p "$ARCHDIR/$DDFD"
+        fi
+
+        eval cp -rf "$PACKAGE"/"$i" "$ARCHDIR/$DDFD"
+      done
+
+      cp -rf ../"$ARCH"/bin/* "$ARCHDIR"
+
+      cd "$ARCHDIR"
+
+      tar xf "$LIBSDIR/$NAME-$ARCH.tar.xz"
+
+      cd ..
+    }
+
+    function do_package_release {
+      mkdir "$PACKAGEDIR/pkg"
+
+      local CURDIR=$(pwd)
+      cd "$PACKAGEDIR/pkg"
+
+      tar xf "$PACKAGEDIR/dist/$PACKAGE.tar.xz"
+      test -d "$PACKAGE" || die "$PACKAGE.tar.xz didn't extract a $PACKAGE directory"
+
+      for i in $ARCHS
+      do
+        package_release_arch "$i"
+      done
+
+      cd "$CURDIR"
+    }
+
+    function package_release {
+      do_package_release |& tee -a "$PACKAGEDIR/package.log"
+    }
+
+    function do_compress_release {
+      local CURDIR=$(pwd)
+      cd "$PACKAGEDIR/pkg"
+
+      echo "Tarring..."
+
+      test -d "$PACKAGE" && tar cf "$PACKAGE".tar "$PACKAGE"
+
+      test -d "$PACKAGE"-linux32 && tar cf "$PACKAGE"-linux32.tar "$PACKAGE"-linux32
+      test -d "$PACKAGE"-linux64 && tar cf "$PACKAGE"-linux64.tar "$PACKAGE"-linux64
+
+      test -d "$PACKAGE"-mac64 && tar cf "$PACKAGE"-mac64.tar "$PACKAGE"-mac64
+
+      echo "Compressing..."
+
+      test -f "$PACKAGE".tar && gzip -9 "$PACKAGE".tar
+
+      test -f "$PACKAGE"-linux32.tar && gzip -9 "$PACKAGE"-linux32.tar
+      test -f "$PACKAGE"-linux64.tar && gzip -9 "$PACKAGE"-linux64.tar
+
+      test -f "$PACKAGE"-mac64.tar && gzip -9 "$PACKAGE"-mac64.tar
+
+      echo "Zipping..."
+
+      test -d "$PACKAGE"-win32 && zip -r9q "$PACKAGE"-win32.zip "$PACKAGE"-win32
+      test -d "$PACKAGE"-win64 && zip -r9q "$PACKAGE"-win64.zip "$PACKAGE"-win64
+
+      for i in *
+      do
+        if [ ! \( -f "$i" \) ]; then continue; fi
+
+        S=$(sha256sum "$i" | cut -d' ' -f1)
+
+        echo -e "$i\n$S\n"
+
+      done > sha256sums
+
+      cd "$CURDIR"
+    }
+
+    function compress_release {
+      do_compress_release |& tee -a "$PACKAGEDIR/package.log"
+    }
+
+
+    find_package
+
+    test -e "$PACKAGEDIR" && die "Package dir exists!"
+    mkdir -p "$PACKAGEDIR" || die "Can't create package dir $PACKAGEDIR"
+
+    echo -e "$NAME\n$VERSION" > "$PACKAGEDIR/name"
+
+    configure_release
+
+    compile_release
+
+    strip_release
+    munge_release
+
+    create_dist_xz
+
+    package_release
+    compress_release
   displayName: 'Build xoreos-tools for Ubuntu'
