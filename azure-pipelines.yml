@@ -11,8 +11,7 @@ pool:
 
 steps:
 - script: |
-    git clone git://github.com/lachjames/xoreos-tools
-    cd xoreos-tools
+    ls
     sudo apt-get install libc6-dev g++ make autoconf automake libtool gettext
     sudo apt-get install zlib1g-dev liblzma-dev libxml2-dev libboost-all-dev
     ./autogen.sh && ./configure && make
