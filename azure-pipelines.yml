@@ -1,4 +1,5 @@
 # Starter pipeline
+
 # Start with a minimal pipeline that you can customize to build and deploy your code.
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
@@ -10,44 +11,54 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-- script: |
-    #!/bin/bash
+- bash: echo "Hello world!" > test.txt
 
-    # Download xoreos-tools
-    git clone git://github.com/xoreos/xoreos-tools
+- task: AzureFileCopy@4
+  inputs:
+    sourcePath: test.txt
+    azureSubscription: 'Free Trial(9c59814a-0836-4ff3-8de7-5f7a3b31959e)'
+    Destination: 'AzureBlob'
+    storage: 'xoreosbuilds'
+    ContainerName: 'builds'
 
-    # Download and unzip latest version of azcopy
-    # wget https://azcopyvnext.azureedge.net/release20200501/azcopy_linux_amd64_10.4.3.tar.gz
-    # tar -xvf azcopy_linux_amd64_10.4.3.tar.gz
-    # mv azcopy_linux_amd64_10.4.3 az
+# - script: |
+#     #!/bin/bash
+
+#     # Download xoreos-tools
+#     git clone git://github.com/xoreos/xoreos-tools
+
+#     # Download and unzip latest version of azcopy
+#     # wget https://azcopyvnext.azureedge.net/release20200501/azcopy_linux_amd64_10.4.3.tar.gz
+#     # tar -xvf azcopy_linux_amd64_10.4.3.tar.gz
+#     # mv azcopy_linux_amd64_10.4.3 az
     
-    # Update apt-get
-    sudo apt-get update
+#     # Update apt-get
+#     sudo apt-get update
     
-    # Download files from Google Drive
-    sudo apt-get install unzip
+#     # Download files from Google Drive
+#     sudo apt-get install unzip
     
-    wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=18CUUm7kTGmEsapCVxAdSvHL3yM0KU5yb' -O scripts.zip
-    unzip scripts.zip
+#     wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=18CUUm7kTGmEsapCVxAdSvHL3yM0KU5yb' -O scripts.zip
+#     unzip scripts.zip
 
-    azcopy --source scripts.zip --destination 'https://xoreosbuilds.blob.core.windows.net/builds/scripts.zip'
+#     azcopy --source scripts.zip --destination 'https://xoreosbuilds.blob.core.windows.net/builds/scripts.zip'
 
-    # Set permissions on scripts to make them runnable
-    chmod 777 setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
+#     # Set permissions on scripts to make them runnable
+#     chmod 777 setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
 
-    # Convert the line endings
-    sudo apt-get install dos2unix
-    dos2unix setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
-    # Run the setup script
-    ./setup.sh
+#     # Convert the line endings
+#     sudo apt-get install dos2unix
+#     dos2unix setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
+#     # Run the setup script
+#     ./setup.sh
 
-    # Cross compile
-    ./crosscompilexoreos.sh xoreos-tools
+#     # Cross compile
+#     ./crosscompilexoreos.sh xoreos-tools
 
-    # Zip up the files
-    zip -o release.zip /home/$USER/RELEASEBIN
+#     # Zip up the files
+#     zip -o release.zip /home/$USER/RELEASEBIN
     
-    # Upload the files to Azure storage
-    azcopy --source release.zip --destination 'https://xoreosbuilds.blob.core.windows.net/builds/release.zip'
+#     # Upload the files to Azure storage
+#     azcopy --source release.zip --destination 'https://xoreosbuilds.blob.core.windows.net/builds/release.zip'
 
-  displayName: 'Build xoreos-tools for Ubuntu'
+#   displayName: 'Build xoreos-tools for Ubuntu'
