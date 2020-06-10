@@ -12,13 +12,8 @@ pool:
 
 steps:
 - bash: echo "Hello world!" > test.txt
-- task: AzureCLI@2
-  inputs:
-    azureSubscription: 'Free Trial(9c59814a-0836-4ff3-8de7-5f7a3b31959e)'
-    scriptType: 'batch'
-    scriptLocation: 'inlineScript'
-    inlineScript: 'az storage blob upload --container-name builds --file test.txt --name test.txt'
-    
+- bash: az storage blob upload --container-name builds --file test.txt --name test.txt --account-name xoreosbuilds --account-key yOVxXLuFb1urs9wuPUpMdKr3gBVFJ8h/YJm5ySld5wMWkwW8PCi0qPoKKf21RPYEdFg2XeS/lpPGbhz3fpG8Hg==
+
 # - script: |
 #     #!/bin/bash
 
