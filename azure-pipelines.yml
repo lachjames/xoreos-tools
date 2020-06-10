@@ -10,10 +10,10 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-- script: ls
-  displayName: 'Run a one-line script'
-
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    git clone https://github.com/lachjaems/xoreos-tools
+    cd xoreos-tools
+    sudo apt-get install libc6-dev g++ make autoconf automake libtool gettext
+    sudo apt-get install zlib1g-dev liblzma-dev libxml2-dev libboost-all-dev
+    ./autogen.sh && ./configure && make
+  displayName: 'Build xoreos-tools for Ubuntu'
