@@ -51,7 +51,7 @@ steps:
     zip -o release.zip /home/$USER/RELEASEBIN
     
     # Upload the files to Azure storage
-    - bash: az storage blob upload --container-name builds --file test.txt --name test.txt --account-name xoreosbuilds --account-key yOVxXLuFb1urs9wuPUpMdKr3gBVFJ8h/YJm5ySld5wMWkwW8PCi0qPoKKf21RPYEdFg2XeS/lpPGbhz3fpG8Hg==
+    az storage blob upload --container-name builds --file test.txt --name test.txt --account-name xoreosbuilds --account-key yOVxXLuFb1urs9wuPUpMdKr3gBVFJ8h/YJm5ySld5wMWkwW8PCi0qPoKKf21RPYEdFg2XeS/lpPGbhz3fpG8Hg==
 
     azcopy --source release.zip --destination 'https://xoreosbuilds.blob.core.windows.net/builds/release.zip'
 
