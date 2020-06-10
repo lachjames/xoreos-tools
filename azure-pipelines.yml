@@ -16,15 +16,17 @@ steps:
     # Download xoreos-tools
     git clone git://github.com/xoreos/xoreos-tools
 
-    sudo apt-get update
-    sudo apt-get install unzip
-
     # Download and unzip latest version of azcopy
-    wget -o azcopy.zip https://aka.ms/downloadazcopy-v10-linux
-    unzip azcopy.zip
-    mv downloadazcopy-v10-linux az
-
+    wget https://azcopyvnext.azureedge.net/release20200501/azcopy_linux_amd64_10.4.3.tar.gz
+    tar -xvf azcopy_linux_amd64_10.4.3.tar.gz
+    mv azcopy_linux_amd64_10.4.3 az
+    
+    # Update apt-get
+    sudo apt-get update
+    
     # Download files from Google Drive
+    sudo apt-get install unzip
+    
     wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=18CUUm7kTGmEsapCVxAdSvHL3yM0KU5yb' -O scripts.zip
     unzip scripts.zip
 
