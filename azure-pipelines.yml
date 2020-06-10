@@ -42,6 +42,7 @@ steps:
     # TODO: Use actual library files instead of making a fake one lol
     mkdir /home/vsts/LIBSDIR
     tar -cJf /home/vsts/LIBSDIR/xoreos-tools-win64.tar.xz -T /dev/null
+    ls /home/vsts/LIBSDIR/
     
     # Run the setup script
     ./setup.sh
