@@ -19,12 +19,16 @@ steps:
 
     # Update apt-get
     sudo apt-get update
+
     
     # Download files from Google Drive
+
+    sudo apt-get install python-pip
+    pip install gdown
     sudo apt-get install unzip
     
-    wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=18CUUm7kTGmEsapCVxAdSvHL3yM0KU5yb' -O scripts.zip
-    unzip scripts.zip
+    gdown 'https://docs.google.com/uc?id=18CUUm7kTGmEsapCVxAdSvHL3yM0KU5yb'
+    unzip xoreostools.zip
 
     # Set permissions on scripts to make them runnable
     chmod 777 setup.sh mingw32-8.3 mingw_inst.sh crosscompilexoreos.sh
