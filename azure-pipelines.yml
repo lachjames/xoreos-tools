@@ -10,9 +10,10 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-# CMake
-# Build with the CMake cross-platform build system
-- task: CMake@1
-  inputs:
-    #workingDirectory: 'build' # Optional
-    #cmakeArgs: # Optional
+- script: ls
+  displayName: 'Run a one-line script'
+
+- script: |
+    echo Add other tasks to build, test, and deploy your project.
+    echo See https://aka.ms/yaml
+  displayName: 'Run a multi-line script'
