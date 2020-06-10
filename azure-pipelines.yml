@@ -25,6 +25,7 @@ steps:
 
     sudo apt-get install -y python3-pip
     pip3 install setuptools
+    pip3 install wheel
     pip3 install gdown
     sudo apt-get install unzip
     
