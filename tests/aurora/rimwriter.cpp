@@ -1,21 +1,21 @@
-/* xoreos - A reimplementation of BioWare's Aurora engine
+/* xoreos-tools - Tools to help with xoreos development
  *
- * xoreos is the legal property of its developers, whose names
+ * xoreos-tools is the legal property of its developers, whose names
  * can be found in the AUTHORS file distributed with this source
  * distribution.
  *
- * xoreos is free software; you can redistribute it and/or
+ * xoreos-tools is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 3
  * of the License, or (at your option) any later version.
  *
- * xoreos is distributed in the hope that it will be useful,
+ * xoreos-tools is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with xoreos. If not, see <http://www.gnu.org/licenses/>.
+ * along with xoreos-tools. If not, see <http://www.gnu.org/licenses/>.
  */
 
 /** @file
@@ -432,7 +432,7 @@ GTEST_TEST(RIMWriter, WriteFile) {
 	Common::SeekableReadStream *readStream = rim.getResource(0);
 	ASSERT_EQ(readStream->size(), kFileDataSize);
 
-	std::unique_ptr<byte[]> fileData(new byte[readStream->size()]);
+	std::unique_ptr<byte[]> fileData = std::make_unique<byte[]>(readStream->size());
 	readStream->read(fileData.get(), readStream->size());
 
 	for (size_t i = 0; i < kFileDataSize; ++i) {
@@ -475,11 +475,11 @@ GTEST_TEST(RIMWriter, WriteMultipleFiles) {
 	Common::SeekableReadStream *readStream3 = rim.getResource(2);
 	ASSERT_EQ(readStream3->size(), kLogoDataSize);
 
-	std::unique_ptr<byte[]> fileData1(new byte[readStream1->size()]);
+	std::unique_ptr<byte[]> fileData1 = std::make_unique<byte[]>(readStream1->size());
 	readStream1->read(fileData1.get(), readStream1->size());
-	std::unique_ptr<byte[]> fileData2(new byte[readStream2->size()]);
+	std::unique_ptr<byte[]> fileData2 = std::make_unique<byte[]>(readStream2->size());
 	readStream2->read(fileData2.get(), readStream2->size());
-	std::unique_ptr<byte[]> fileData3(new byte[readStream3->size()]);
+	std::unique_ptr<byte[]> fileData3 = std::make_unique<byte[]>(readStream3->size());
 	readStream3->read(fileData3.get(), readStream3->size());
 
 	for (size_t i = 0; i < kFileDataSize; ++i) {
