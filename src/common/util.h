@@ -72,11 +72,6 @@ template<typename T> inline T MAX (T a, T b) { return (a>b)  ? a :  b; }
 template<typename T> inline T CLIP (T v, T amin, T amax)
 	{ if (v < amin) return amin; else if (v > amax) return amax; else return v; }
 
-/**
- * Template method which swaps the values of its two parameters.
- */
-template<typename T> inline void SWAP(T &a, T &b) { T tmp = a; a = b; b = tmp; }
-
 /** Is this integer value a power of 2? */
 template<typename T> inline bool ISPOWER2(T x) { return x && !(x & (x - 1)); }
 
@@ -126,9 +121,12 @@ template<> inline float MAX(float a, float b) { return fmaxf(a, b); }
 #endif
 
 /**
- * Macro which determines the number of entries in a fixed size array.
+ * Determine the number of entries in a fixed size array.
  */
-#define ARRAYSIZE(x) (sizeof(x) / sizeof(x[0]))
+template<typename T, std::size_t N>
+constexpr std::size_t ARRAYSIZE(const T (&)[N]) {
+	return N;
+}
 
 /**
 * Print a warning message to the text console (stderr).
