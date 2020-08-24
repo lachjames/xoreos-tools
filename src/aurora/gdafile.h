@@ -25,13 +25,13 @@
 #ifndef AURORA_GDAFILE_H
 #define AURORA_GDAFILE_H
 
+#include <memory>
 #include <vector>
 #include <map>
 
 #include <boost/noncopyable.hpp>
 
 #include "src/common/ustring.h"
-#include "src/common/ptrvector.h"
 
 #include "src/aurora/types.h"
 
@@ -74,10 +74,10 @@ public:
 	};
 
 	struct Header {
-		uint32 hash;
+		uint32_t hash;
 		Type type;
 
-		uint32 field;
+		uint32_t field;
 
 		Header() : hash(0), type(kTypeEmpty), field(0xFFFFFFFF) { }
 	};
@@ -114,32 +114,32 @@ public:
 	const GFF4Struct *getRow(size_t row) const;
 
 	/** Find a row by its ID value. */
-	size_t findRow(uint32 id) const;
+	size_t findRow(uint32_t id) const;
 
 	/** Find a column by its name. */
 	size_t findColumn(const Common::UString &name) const;
 	/** Find a column by its hash. */
-	size_t findColumn(uint32 hash) const;
+	size_t findColumn(uint32_t hash) const;
 
-	Common::UString getString(size_t row, uint32 columnHash, const Common::UString &def = "") const;
+	Common::UString getString(size_t row, uint32_t columnHash, const Common::UString &def = "") const;
 	Common::UString getString(size_t row, const Common::UString &columnName,
 	                          const Common::UString &def = "") const;
 
-	int32 getInt(size_t row, uint32 columnHash, int32 def = 0) const;
-	int32 getInt(size_t row, const Common::UString &columnName, int32 def = 0) const;
+	int32_t getInt(size_t row, uint32_t columnHash, int32_t def = 0) const;
+	int32_t getInt(size_t row, const Common::UString &columnName, int32_t def = 0) const;
 
-	float getFloat(size_t row, uint32 columnHash, float def = 0.0f) const;
+	float getFloat(size_t row, uint32_t columnHash, float def = 0.0f) const;
 	float getFloat(size_t row, const Common::UString &columnName, float def = 0.0f) const;
 
 
 private:
-	typedef Common::PtrVector<GFF4File> GFF4s;
+	typedef std::vector<std::unique_ptr<GFF4File>> GFF4s;
 	typedef const GFF4List * Columns;
 	typedef const GFF4List * Row;
 	typedef std::vector<Row> Rows;
 	typedef std::vector<size_t> RowStarts;
 
-	typedef std::map<uint32, size_t> ColumnHashMap;
+	typedef std::map<uint32_t, size_t> ColumnHashMap;
 	typedef std::map<Common::UString, size_t> ColumnNameMap;
 
 
@@ -162,7 +162,7 @@ private:
 
 	Type identifyType(const Columns &columns, const Row &rows, size_t column) const;
 
-	const GFF4Struct *getRowColumn(size_t row, uint32 hash, size_t &column) const;
+	const GFF4Struct *getRowColumn(size_t row, uint32_t hash, size_t &column) const;
 	const GFF4Struct *getRowColumn(size_t row, const Common::UString &name, size_t &column) const;
 };
 

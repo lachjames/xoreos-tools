@@ -26,8 +26,7 @@
 #define IMAGES_CBGT_H
 
 #include <vector>
-
-#include "src/common/ptrvector.h"
+#include <memory>
 
 #include "src/images/decoder.h"
 
@@ -61,9 +60,9 @@ public:
 	~CBGT();
 
 private:
-	typedef Common::PtrVector<byte, Common::DeallocatorArray> Palettes;
+	typedef std::vector<std::unique_ptr<byte[]>> Palettes;
 	typedef std::vector<size_t> PaletteIndices;
-	typedef Common::PtrVector<Common::SeekableReadStream> Cells;
+	typedef std::vector<std::unique_ptr<Common::SeekableReadStream>> Cells;
 
 	struct ReadContext {
 		Common::SeekableReadStream *cbgt;
@@ -74,8 +73,8 @@ private:
 		PaletteIndices paletteIndices;
 		Cells cells;
 
-		uint32 width;
-		uint32 height;
+		uint32_t width;
+		uint32_t height;
 
 		size_t maxPaletteIndex;
 
@@ -92,7 +91,7 @@ private:
 
 	void checkConsistency(ReadContext &ctx);
 
-	void createImage(uint32 width, uint32 height);
+	void createImage(uint32_t width, uint32_t height);
 	void drawImage(ReadContext &ctx);
 };
 

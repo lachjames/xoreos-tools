@@ -26,8 +26,7 @@
 #define IMAGES_CDPTH_H
 
 #include <vector>
-
-#include "src/common/ptrvector.h"
+#include <memory>
 
 #include "src/images/decoder.h"
 
@@ -53,21 +52,21 @@ namespace Images {
  */
 class CDPTH : public Decoder {
 public:
-	CDPTH(Common::SeekableReadStream &cdpth, uint32 width, uint32 height);
+	CDPTH(Common::SeekableReadStream &cdpth, uint32_t width, uint32_t height);
 	~CDPTH();
 
 private:
-	typedef Common::PtrVector<Common::SeekableReadStream> Cells;
+	typedef std::vector<std::unique_ptr<Common::SeekableReadStream>> Cells;
 
 	struct ReadContext {
 		Common::SeekableReadStream *cdpth;
 
 		Cells cells;
 
-		uint32 width;
-		uint32 height;
+		uint32_t width;
+		uint32_t height;
 
-		ReadContext(Common::SeekableReadStream &c, uint32 w, uint32 h);
+		ReadContext(Common::SeekableReadStream &c, uint32_t w, uint32_t h);
 	};
 
 	void load(ReadContext &ctx);
@@ -76,7 +75,7 @@ private:
 
 	void checkConsistency(ReadContext &ctx);
 
-	void createImage(uint32 width, uint32 height);
+	void createImage(uint32_t width, uint32_t height);
 	void drawImage(ReadContext &ctx);
 };
 

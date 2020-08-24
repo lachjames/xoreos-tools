@@ -31,7 +31,6 @@
 #include <boost/noncopyable.hpp>
 
 #include "src/common/types.h"
-#include "src/common/ptrvector.h"
 
 #include "src/images/types.h"
 
@@ -47,9 +46,9 @@ class Decoder : boost::noncopyable {
 public:
 	/** A mip map. */
 	struct MipMap {
-		int    width;  ///< The mip map's width.
-		int    height; ///< The mip map's height.
-		uint32 size;   ///< The mip map's size in bytes.
+		int      width;  ///< The mip map's width.
+		int      height; ///< The mip map's height.
+		uint32_t size;   ///< The mip map's size in bytes.
 
 		std::unique_ptr<byte[]> data; ///< The mip map's data.
 
@@ -94,7 +93,7 @@ public:
 	void flipVertically();
 
 protected:
-	typedef Common::PtrVector<MipMap> MipMaps;
+	typedef std::vector<std::unique_ptr<MipMap>> MipMaps;
 
 	PixelFormat _format;
 
