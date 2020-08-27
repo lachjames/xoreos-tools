@@ -140,6 +140,12 @@ AX_CHECK_COMPILER_FLAGS_VAR([C++], [WARN], [-Wundefined-var-template], [-Wno-und
 dnl We do not yet mark any of our overrides. Let's disable this for now
 AX_CHECK_COMPILER_FLAGS_VAR([C++], [WARN], [-Winconsistent-missing-override], [-Wno-inconsistent-missing-override])
 
+dnl Disable warnings about unused static const variables
+AX_CHECK_COMPILER_FLAGS_VAR([C++], [WARN], [-Wunused-const-variable], [-Wno-unused-const-variable])
+
+dnl Disable warnings about >= 0 comparisons on enums
+AX_CHECK_COMPILER_FLAGS_VAR([C++], [WARN], [-Wtautological-unsigned-enum-zero-compare], [-Wno-tautological-unsigned-enum-zero-compare])
+
 AC_SUBST(WARN)
 
 dnl C++ dialect
