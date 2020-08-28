@@ -110,6 +110,9 @@
 		#define WIN32
 	#endif
 
+	#define DIAGNOSTICS_PUSH __pragma(warning(push))
+	#define DIAGNOSTICS_POP __pragma(warning(pop))
+
 	#define IGNORE_UNUSED_VARIABLES __pragma(warning(disable : 4101))
 
 #elif defined(__MINGW32__)
@@ -147,10 +150,16 @@
 	#define PACKED_STRUCT __attribute__((__packed__))
 	#define GCC_PRINTF(x,y) __attribute__((__format__(printf, x, y)))
 
+	#define DIAGNOSTICS_PUSH _Pragma("GCC diagnostic push")
+	#define DIAGNOSTICS_POP _Pragma("GCC diagnostic pop")
+
 	#if (__GNUC__ >= 3)
 		// Macro to ignore several "unused variable" warnings produced by GCC
 		#define IGNORE_UNUSED_VARIABLES _Pragma("GCC diagnostic ignored \"-Wunused-variable\"") \
 		                                _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")
+	#endif
+	#if (__GNUC__ >= 8)
+		#define IGNORE_FUNCTION_CAST _Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
 	#endif
 
 	#if !defined(FORCEINLINE) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1))
@@ -420,8 +429,20 @@
 	#define MAXPATHLEN 256
 #endif
 
+#ifndef DIAGNOSTICS_PUSH
+	#define DIAGNOSTICS_PUSH
+#endif
+
+#ifndef DIAGNOSTICS_POP
+	#define DIAGNOSTICS_POP
+#endif
+
 #ifndef IGNORE_UNUSED_VARIABLES
 	#define IGNORE_UNUSED_VARIABLES
+#endif
+
+#ifndef IGNORE_FUNCTION_CAST
+	#define IGNORE_FUNCTION_CAST
 #endif
 
 #endif // COMMON_SYSTEM_H
